@@ -58,9 +58,11 @@ uint8_t* from_hex(const char hex[], uint8_t bin[])
 {
   size_t length = strlen(hex);
   size_t i, j;
+  unsigned int x;
 
   for( i = 0, j = 0; i < length; i += 2, j++ ) {
-    sscanf(&hex[i], "%02x", &bin[j]);
+    sscanf(&hex[i], "%02x", &x);
+    bin[j] = (uint8_t)x;
   }
 
   return bin;
