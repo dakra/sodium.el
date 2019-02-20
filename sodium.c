@@ -19,6 +19,7 @@
 
 /* Frequently-used symbols. */
 static emacs_value nil;
+static emacs_value list;
 
 
 int plugin_is_GPL_compatible;
@@ -191,7 +192,6 @@ box_make_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   to_hex(phexbuf, public_key, crypto_box_PUBLICKEYBYTES);
   to_hex(shexbuf, secret_key, crypto_box_SECRETKEYBYTES);
 
-  emacs_value list = env->intern(env, "list");
   emacs_value cons = env->intern(env, "cons");
   emacs_value pk_key = env->intern(env, "pk");
   emacs_value sk_key = env->intern(env, "sk");
@@ -304,7 +304,17 @@ bind_function (emacs_env *env, const char *name, emacs_value Sfun)
 static void initialize_module (emacs_env *env) {
   /* Gather symbols. */
   nil = env->intern(env, "nil");
+  list = env->intern(env, "list");
 
+  if (sodium_init() < 0) {
+    /* panic! the library couldn't be initialized, it is not safe to use */
+    emacs_value signal = env->intern(env, "error");
+    char msg[] = "Couldn't initialize libsodium";
+    emacs_value err_args[] = {env->make_string(env, msg, strlen(msg))};
+    emacs_value message = env->funcall(env, list, 1, err_args);
+    env->non_local_exit_signal(env, signal, message);
+    return;
+  }
   /* Bind functions. */
 #define DEFUN(lsym, csym, amin, amax, doc, data) \
     bind_function (env, lsym, \
