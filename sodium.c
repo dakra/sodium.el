@@ -25,21 +25,6 @@ static emacs_value list;
 int plugin_is_GPL_compatible;
 
 
-int urandombytes(uint8_t buffer[], unsigned long long size)
-{
-  int fd;
-  fd = open("/dev/urandom", O_RDONLY);
-  if(fd < 0) {
-    return fd;
-  }
-
-  int rc = read(fd, buffer, size);
-  if(rc >= 0) {
-    close(fd);
-  }
-  return rc;
-}
-
 char* to_hex(char hex[], const uint8_t bin[], size_t length)
 {
   size_t i;
@@ -155,13 +140,7 @@ box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   (void)ptr;
 
   uint8_t nonce[crypto_box_NONCEBYTES];
-  if (urandombytes(nonce, crypto_box_NONCEBYTES) < 0) {
-    emacs_value signal = env->intern(env, "file-error");
-    char msg[] = "/dev/urandom";
-    emacs_value message = env->make_string(env, msg, strlen(msg));
-    env->non_local_exit_signal(env, signal, message);
-    return nil;
-  }
+  randombytes_buf(nonce, sizeof(nonce));
   char hexnonce[2*crypto_box_NONCEBYTES+1];
 
   to_hex(hexnonce, nonce, crypto_box_NONCEBYTES);
