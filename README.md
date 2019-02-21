@@ -9,25 +9,24 @@ You can see `sodium-box-demo.el` for a simple example:
 ``` emacs-lisp
 (require 'sodium)
 
-(let* ((nonce  (sodium-box-make-nonce))
-       (bob    (sodium-box-make-keypair))
-       (bob-pk (cdr (assoc 'pk bob)))
-       (bob-sk (cdr (assoc 'sk bob)))
-       (eve    (sodium-box-make-keypair))
-       (eve-pk (cdr (assoc 'pk eve)))
-       (eve-sk (cdr (assoc 'sk eve)))
-       (msg "Hello World!")
-       encrypted decrypted)
+  (let* ((nonce  (sodium-box-make-nonce))
+         (bob    (sodium-box-keypair))
+         (bob-pk (cdr (assoc 'pk bob)))
+         (bob-sk (cdr (assoc 'sk bob)))
+         (alice    (sodium-box-keypair))
+         (alice-pk (cdr (assoc 'pk alice)))
+         (alice-sk (cdr (assoc 'sk alice)))
+         (msg "Hello World!")
+         encrypted decrypted)
     (message "Encrypting message '%s'" msg)
-    (setq encrypted (sodium-box-encrypt bob-pk eve-sk nonce msg))
+    (setq encrypted (sodium-box-easy msg nonce bob-pk alice-sk))
     (message "Decrypt message '%s'" encrypted)
-    (setq decrypted (sodium-box-decrypt eve-pk bob-sk nonce encrypted))
+    (setq decrypted (sodium-box-open-easy encrypted nonce alice-pk bob-sk))
     (message "Decrypted message '%s'" decrypted))
 ```
 
 ## Thanks
-Some C code to work with libsodium was taken from/inspired by
-https://github.com/mwarning/libsodium-example
+@jedisct1 for [libsodium](https://github.com/jedisct1/libsodium)
 
 Emacs module code was taken from/inspired by:
 - https://phst.eu/emacs-modules

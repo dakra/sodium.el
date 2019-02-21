@@ -14,7 +14,7 @@
 #include "emacs-module.h"
 
 
-#define MAX_MSG_SIZE 4096
+#define BASE64_VARIANT sodium_base64_VARIANT_ORIGINAL
 
 
 /* Frequently-used symbols. */
@@ -24,102 +24,6 @@ static emacs_value list;
 
 int plugin_is_GPL_compatible;
 
-
-char* to_hex(char hex[], const uint8_t bin[], size_t length)
-{
-  size_t i;
-  uint8_t *p0 = (uint8_t *)bin;
-  char *p1 = hex;
-
-  for( i = 0; i < length; i++ ) {
-    snprintf( p1, 3, "%02x", *p0 );
-    p0 += 1;
-    p1 += 2;
-  }
-
-  return hex;
-}
-
-uint8_t* from_hex(const char hex[], uint8_t bin[])
-{
-  size_t length = strlen(hex);
-  size_t i, j;
-  unsigned int x;
-
-  for( i = 0, j = 0; i < length; i += 2, j++ ) {
-    sscanf(&hex[i], "%02x", &x);
-    bin[j] = (uint8_t)x;
-  }
-
-  return bin;
-}
-
-int is_zero(const uint8_t *data, int len)
-{
-  int i;
-  int rc = 0;
-
-  for(i = 0; i < len; ++i) {
-    rc |= data[i];
-  }
-
-  return rc;
-}
-
-int encrypt(uint8_t encrypted[], const uint8_t pk[], const uint8_t sk[], const uint8_t nonce[], const uint8_t plain[], int length)
-{
-  uint8_t temp_plain[MAX_MSG_SIZE];
-  uint8_t temp_encrypted[MAX_MSG_SIZE];
-  int rc;
-
-  if (length+crypto_box_ZEROBYTES >= MAX_MSG_SIZE) {
-    return -2;
-  }
-
-  memset(temp_plain, '\0', crypto_box_ZEROBYTES);
-  memcpy(temp_plain + crypto_box_ZEROBYTES, plain, length);
-
-  rc = crypto_box(temp_encrypted, temp_plain, crypto_box_ZEROBYTES + length, nonce, pk, sk);
-
-  if (rc != 0) {
-    return -1;
-  }
-
-  if (is_zero(temp_plain, crypto_box_BOXZEROBYTES) != 0) {
-    return -3;
-  }
-
-  memcpy(encrypted, temp_encrypted + crypto_box_BOXZEROBYTES, crypto_box_ZEROBYTES + length);
-
-  return crypto_box_ZEROBYTES + length - crypto_box_BOXZEROBYTES;
-}
-
-int decrypt(uint8_t plain[], const uint8_t pk[], const uint8_t sk[], const uint8_t nonce[], const uint8_t encrypted[], int length)
-{
-  uint8_t temp_encrypted[MAX_MSG_SIZE];
-  uint8_t temp_plain[MAX_MSG_SIZE];
-  int rc;
-
-  if(length+crypto_box_BOXZEROBYTES >= MAX_MSG_SIZE) {
-    return -2;
-  }
-  memset(temp_encrypted, '\0', crypto_box_BOXZEROBYTES);
-  memcpy(temp_encrypted + crypto_box_BOXZEROBYTES, encrypted, length);
-
-  rc = crypto_box_open(temp_plain, temp_encrypted, crypto_box_BOXZEROBYTES + length, nonce, pk, sk);
-
-  if( rc != 0 ) {
-    return -1;
-  }
-
-  if( is_zero(temp_plain, crypto_box_ZEROBYTES) != 0 ) {
-    return -3;
-  }
-
-  memcpy(plain, temp_plain + crypto_box_ZEROBYTES, crypto_box_BOXZEROBYTES + length);
-
-  return crypto_box_BOXZEROBYTES + length - crypto_box_ZEROBYTES;
-}
 
 static char* copy_string(emacs_env *env, emacs_value v) {
   ptrdiff_t size = 0;
@@ -139,48 +43,47 @@ box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   (void)args;
   (void)ptr;
 
-  uint8_t nonce[crypto_box_NONCEBYTES];
+  unsigned char nonce[crypto_box_NONCEBYTES];
   randombytes_buf(nonce, sizeof(nonce));
-  char hexnonce[2*crypto_box_NONCEBYTES+1];
 
-  to_hex(hexnonce, nonce, crypto_box_NONCEBYTES);
-
-  return env->make_string(env, hexnonce, (ptrdiff_t) strlen(hexnonce));
+  char nonce_b64[sodium_base64_encoded_len(sizeof(nonce), BASE64_VARIANT)];
+  sodium_bin2base64(nonce_b64, sizeof(nonce_b64), nonce, sizeof(nonce), BASE64_VARIANT);
+  return env->make_string(env, nonce_b64, (ptrdiff_t) strlen(nonce_b64));
 }
 
-#define SODIUM_BOX_MAKE_KEYPAIR \
-  "(sodium-box-make-keypair)\n" \
+#define SODIUM_BOX_KEYPAIR \
+  "(sodium-box-keypair)\n" \
   "\n" \
   "Return alist with a new public and secret key."
 
 static emacs_value
-box_make_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
+box_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
   (void)n;
   (void)args;
   (void)ptr;
 
-  uint8_t public_key[crypto_box_PUBLICKEYBYTES];
-  uint8_t secret_key[crypto_box_SECRETKEYBYTES];
+  unsigned char pk[crypto_box_PUBLICKEYBYTES];
+  unsigned char sk[crypto_box_SECRETKEYBYTES];
+  if (crypto_box_keypair(pk, sk) != 0) {
+    return nil;
+  }
 
-  crypto_box_keypair(public_key, secret_key);
-
-  char phexbuf[2*crypto_box_PUBLICKEYBYTES+1];
-  char shexbuf[2*crypto_box_SECRETKEYBYTES+1];
-
-  to_hex(phexbuf, public_key, crypto_box_PUBLICKEYBYTES);
-  to_hex(shexbuf, secret_key, crypto_box_SECRETKEYBYTES);
+  char pk_b64[sodium_base64_encoded_len(sizeof(pk), BASE64_VARIANT)];
+  sodium_bin2base64(pk_b64, sizeof(pk_b64), pk, sizeof(pk), BASE64_VARIANT);
+  char sk_b64[sodium_base64_encoded_len(sizeof(sk), BASE64_VARIANT)];
+  sodium_bin2base64(sk_b64, sizeof(sk_b64), sk, sizeof(sk), BASE64_VARIANT);
 
   emacs_value cons = env->intern(env, "cons");
   emacs_value pk_key = env->intern(env, "pk");
   emacs_value sk_key = env->intern(env, "sk");
-  emacs_value pk = env->make_string(env, phexbuf, (ptrdiff_t) strlen(phexbuf));
-  emacs_value sk = env->make_string(env, shexbuf, (ptrdiff_t) strlen(shexbuf));
+  emacs_value epk = env->make_string(env, pk_b64, (ptrdiff_t) strlen(pk_b64));
+  emacs_value esk = env->make_string(env, sk_b64, (ptrdiff_t) strlen(sk_b64));
 
-  emacs_value fun_args[] = {pk_key, pk};
+  emacs_value fun_args[] = {pk_key, epk};
   emacs_value pk_pair = env->funcall(env, cons, 2, fun_args);
   fun_args[0] = sk_key;
-  fun_args[1] = sk;
+  fun_args[1] = esk;
   emacs_value sk_pair = env->funcall(env, cons, 2, fun_args);
 
   fun_args[0] = pk_pair;
@@ -189,81 +92,78 @@ box_make_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   return env->funcall(env, list, 2, fun_args);
 }
 
-#define SODIUM_BOX_ENCRYPT \
-  "(sodium-box-encrypt PK SK NONCE PLAIN)\n" \
+#define SODIUM_BOX_EASY \
+  "(sodium-box-easy MSG NONCE PK SK)\n" \
   "\n" \
   "Return encrypted text PLAIN with public key PK, secret key SK and NONCE."
 
 static emacs_value
-box_encrypt(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
+box_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
   (void)n;
   (void)ptr;
 
-  char* pk = copy_string(env, args[0]);
-  char* sk = copy_string(env, args[1]);
-  char* noncehex = copy_string(env, args[2]);
-  char* plain = copy_string(env, args[3]);
+  char* message = copy_string(env, args[0]);
+  char* nonce_b64 = copy_string(env, args[1]);
+  char* pk_b64 = copy_string(env, args[2]);
+  char* sk_b64 = copy_string(env, args[3]);
 
-  uint8_t encrypted[MAX_MSG_SIZE];
-  uint8_t public_key[crypto_box_PUBLICKEYBYTES];
-  uint8_t secret_key[crypto_box_SECRETKEYBYTES];
-  uint8_t nonce[crypto_box_NONCEBYTES];
-  from_hex(pk, public_key);
-  from_hex(sk, secret_key);
-  from_hex(noncehex, nonce);
-  int rc = encrypt(encrypted, public_key, secret_key, nonce, (const uint8_t*)plain, strlen(plain));
-  free(pk);
-  free(sk);
-  free(noncehex);
-  free(plain);
-  if (rc < 0) {
+  unsigned char ciphertext[crypto_box_MACBYTES + strlen(message)];
+  unsigned char nonce[crypto_box_NONCEBYTES];
+  unsigned char pk[crypto_box_PUBLICKEYBYTES];
+  unsigned char sk[crypto_box_SECRETKEYBYTES];
+
+  sodium_base642bin(nonce, sizeof(nonce), nonce_b64, strlen(nonce_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  sodium_base642bin(pk, sizeof(pk), pk_b64, strlen(pk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  sodium_base642bin(sk, sizeof(sk), sk_b64, strlen(sk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+
+  if (crypto_box_easy(ciphertext, (unsigned char*) message, strlen(message), nonce, pk, sk) != 0) {
     return nil;
   }
+  free(message);
+  free(nonce_b64);
+  free(pk_b64);
+  free(sk_b64);
 
-  char encrypted_hex[MAX_MSG_SIZE];
-  to_hex(encrypted_hex, encrypted, rc);
+  char ciphertext_b64[sodium_base64_encoded_len(sizeof(ciphertext), BASE64_VARIANT)];
+  sodium_bin2base64(ciphertext_b64, sizeof(ciphertext_b64), ciphertext, sizeof(ciphertext), BASE64_VARIANT);
 
-
-  return env->make_string(env, encrypted_hex, (ptrdiff_t) strlen(encrypted_hex));
+  return env->make_string(env, ciphertext_b64, (ptrdiff_t) strlen(ciphertext_b64));
 }
 
-#define SODIUM_BOX_DECRYPT \
-  "(sodium-box-decrypt PK SK NONCE ENCRYPTED)\n" \
+#define SODIUM_BOX_OPEN_EASY \
+  "(sodium-box-open-easy CIPHER NONCE PK SK)\n" \
   "\n" \
   "Return decrypted text ENCRYPTED with public key PK, secret key SK and NONCE."
 
 static emacs_value
-box_decrypt(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
+box_open_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
   (void)n;
   (void)ptr;
 
-  char* pk = copy_string(env, args[0]);
-  char* sk = copy_string(env, args[1]);
-  char* noncehex = copy_string(env, args[2]);
-  char* encstr = copy_string(env, args[3]);
-  uint8_t public_key[crypto_box_PUBLICKEYBYTES];
-  uint8_t secret_key[crypto_box_SECRETKEYBYTES];
-  uint8_t nonce[crypto_box_NONCEBYTES];
-  from_hex(pk, public_key);
-  from_hex(sk, secret_key);
-  from_hex(noncehex, nonce);
+  char* ciphertext_b64 = copy_string(env, args[0]);
+  char* nonce_b64 = copy_string(env, args[1]);
+  char* pk_b64 = copy_string(env, args[2]);
+  char* sk_b64 = copy_string(env, args[3]);
 
-  uint8_t encrypted[MAX_MSG_SIZE];
-  uint8_t decrypted[MAX_MSG_SIZE];
-  from_hex(encstr, encrypted);
-  int rc = decrypt(decrypted, public_key, secret_key, nonce, encrypted, strlen((const char*) encrypted));
-  free(pk);
-  free(sk);
-  free(noncehex);
-  free(encstr);
-  if (rc < 0) {
+  unsigned char ciphertext[strlen(ciphertext_b64)];
+  unsigned char nonce[crypto_box_NONCEBYTES];
+  unsigned char pk[crypto_box_PUBLICKEYBYTES];
+  unsigned char sk[crypto_box_SECRETKEYBYTES];
+
+  sodium_base642bin(ciphertext, sizeof(ciphertext), ciphertext_b64, strlen(ciphertext_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  sodium_base642bin(nonce, sizeof(nonce), nonce_b64, strlen(nonce_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  sodium_base642bin(pk, sizeof(pk), pk_b64, strlen(pk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  sodium_base642bin(sk, sizeof(sk), sk_b64, strlen(sk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+
+  unsigned char message[sizeof(ciphertext) - crypto_box_MACBYTES];
+  if (crypto_box_open_easy(message, ciphertext, strlen((char *)ciphertext), nonce, pk, sk) != 0) {
+    /* message for Bob pretending to be from Alice has been forged! */
     return nil;
   }
-  decrypted[rc] = '\0';
 
-  return env->make_string(env, (const char*) decrypted, (ptrdiff_t) strlen((const char*) decrypted));
+  return env->make_string(env, (const char*) message, (ptrdiff_t) strlen((const char*) message));
 }
 
 
@@ -299,10 +199,10 @@ static void initialize_module (emacs_env *env) {
     bind_function (env, lsym, \
                    env->make_function (env, amin, amax, csym, doc, data))
 
-  DEFUN ("sodium-box-make-keypair", box_make_keypair, 0, 0, SODIUM_BOX_MAKE_KEYPAIR, NULL);
+  DEFUN ("sodium-box-keypair", box_keypair, 0, 0, SODIUM_BOX_KEYPAIR, NULL);
   DEFUN ("sodium-box-make-nonce", box_make_nonce, 0, 0, SODIUM_BOX_MAKE_NONCE, NULL);
-  DEFUN ("sodium-box-encrypt", box_encrypt, 4, 4, SODIUM_BOX_ENCRYPT, NULL);
-  DEFUN ("sodium-box-decrypt", box_decrypt, 4, 4, SODIUM_BOX_DECRYPT, NULL);
+  DEFUN ("sodium-box-easy", box_easy, 4, 4, SODIUM_BOX_EASY, NULL);
+  DEFUN ("sodium-box-open-easy", box_open_easy, 4, 4, SODIUM_BOX_OPEN_EASY, NULL);
 #undef DEFUN
 
   /* (provide 'sodium) */
