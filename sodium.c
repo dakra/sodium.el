@@ -51,6 +51,32 @@ box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   return env->make_string(env, nonce_b64, (ptrdiff_t) strlen(nonce_b64));
 }
 
+#define SODIUM_INCREMENT \
+  "(sodium-increment N)\n" \
+  "\n" \
+  "Return increment of N.\n" \
+  "It runs in constant-time for a given length.\n" \
+  "\n`sodium-increment' can be used to increment nonces in constant time."
+static emacs_value
+increment(emacs_env *env, ptrdiff_t m, emacs_value *args, void *ptr)
+{
+  (void)m;
+  (void)ptr;
+
+  char* n_b64 = copy_string(env, args[0]);
+  unsigned char n[strlen(n_b64)];
+
+  sodium_base642bin(n, sizeof(n), n_b64, strlen(n_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  free(n_b64);
+
+  sodium_increment(n, sizeof(n));
+
+  char ninc_b64[sodium_base64_encoded_len(sizeof(n), BASE64_VARIANT)];
+  sodium_bin2base64(ninc_b64, sizeof(ninc_b64), n, sizeof(n), BASE64_VARIANT);
+
+  return env->make_string(env, ninc_b64, (ptrdiff_t) strlen(ninc_b64));
+}
+
 #define SODIUM_BOX_KEYPAIR \
   "(sodium-box-keypair)\n" \
   "\n" \
@@ -199,8 +225,9 @@ static void initialize_module (emacs_env *env) {
     bind_function (env, lsym, \
                    env->make_function (env, amin, amax, csym, doc, data))
 
-  DEFUN ("sodium-box-keypair", box_keypair, 0, 0, SODIUM_BOX_KEYPAIR, NULL);
+  DEFUN ("sodium-increment", increment, 1, 1, SODIUM_INCREMENT, NULL);
   DEFUN ("sodium-box-make-nonce", box_make_nonce, 0, 0, SODIUM_BOX_MAKE_NONCE, NULL);
+  DEFUN ("sodium-box-keypair", box_keypair, 0, 0, SODIUM_BOX_KEYPAIR, NULL);
   DEFUN ("sodium-box-easy", box_easy, 4, 4, SODIUM_BOX_EASY, NULL);
   DEFUN ("sodium-box-open-easy", box_open_easy, 4, 4, SODIUM_BOX_OPEN_EASY, NULL);
 #undef DEFUN
