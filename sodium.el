@@ -31,18 +31,10 @@
 
 ;;; Code:
 
-(require 'cl-lib)
+(unless module-file-suffix
+  (error "Module support not detected, libsodium can't work"))
 
-;; Don't require dynamic module at byte compile time.
-(declare-function sodium-box-increment "sodium" ())
-(declare-function sodium-box-make-nonce "sodium" ())
-(declare-function sodium-box-keypair "sodium" ())
-(declare-function sodium-box-easy "sodium" (msg nonce pk sk))
-(declare-function sodium-box-easy-open "sodium" (cipher nonce pk sk))
-(cl-eval-when (load eval)
-  (unless module-file-suffix
-    (error "Module support not detected, libsodium can't work"))
-  (require 'libsodium))
+(require 'libsodium)
 
 
 (provide 'sodium)
