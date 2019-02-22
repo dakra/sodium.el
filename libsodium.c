@@ -35,7 +35,6 @@ static char* copy_string(emacs_env *env, emacs_value v) {
 
 #define SODIUM_BOX_MAKE_NONCE \
   "Return a new nonce."
-
 static emacs_value
 box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
@@ -52,11 +51,10 @@ box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 }
 
 #define SODIUM_INCREMENT \
-  "(sodium-increment N)\n" \
-  "\n" \
   "Return increment of N.\n" \
   "It runs in constant-time for a given length.\n" \
-  "\n`sodium-increment' can be used to increment nonces in constant time."
+  "\n`sodium-increment' can be used to increment nonces in constant time.\n\n" \
+  "(fn N)"
 static emacs_value
 increment(emacs_env *env, ptrdiff_t m, emacs_value *args, void *ptr)
 {
@@ -78,10 +76,7 @@ increment(emacs_env *env, ptrdiff_t m, emacs_value *args, void *ptr)
 }
 
 #define SODIUM_BOX_KEYPAIR \
-  "(sodium-box-keypair)\n" \
-  "\n" \
   "Return alist with a new public and secret key."
-
 static emacs_value
 box_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
@@ -119,10 +114,8 @@ box_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 }
 
 #define SODIUM_BOX_EASY \
-  "(sodium-box-easy MSG NONCE PK SK)\n" \
-  "\n" \
-  "Return encrypted text PLAIN with public key PK, secret key SK and NONCE."
-
+  "Return encrypted text PLAIN with public key PK, secret key SK and NONCE.\n\n" \
+  "(fn MSG NONCE PK SK)"
 static emacs_value
 box_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
@@ -158,10 +151,8 @@ box_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 }
 
 #define SODIUM_BOX_OPEN_EASY \
-  "(sodium-box-open-easy CIPHER NONCE PK SK)\n" \
-  "\n" \
-  "Return decrypted text ENCRYPTED with public key PK, secret key SK and NONCE."
-
+  "Return decrypted text ENCRYPTED with public key PK, secret key SK and NONCE.\n\n" \
+  "(fn CIPHER NONCE PK SK)"
 static emacs_value
 box_open_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
@@ -234,8 +225,8 @@ static void initialize_module (emacs_env *env) {
 
   /* (provide 'sodium) */
   emacs_value provide = env->intern(env, "provide");
-  emacs_value sodium = env->intern(env, "sodium");
-  env->funcall(env, provide, 1, &sodium);
+  emacs_value libsodium = env->intern(env, "libsodium");
+  env->funcall(env, provide, 1, &libsodium);
 }
 
 extern int

@@ -5,19 +5,26 @@ LDFLAGS  = -lsodium
 
 MODULE_SUFFIX := $(shell $(EMACS) -batch --eval '(princ module-file-suffix)')
 
-all: sodium.so
-linux: sodium.so
+all: libsodium.so sodium.elc
+linux: libsodium.so sodium.elc
+windows: libsodium.dll sodium.elc
 
-sodium.so: sodium.c
+libsodium.so: libsodium.c
 	$(CC) -shared $(CFLAGS) $(LDFLAGS) -o $@ $^
+
+libsodium.dll: libsodium.c
+	$(MINGW_CC) -shared $(CFLAGS) $(LCDFLAGS) -o $@ $^
+
+sodium.elc: sodium.el
+	$(EMACS) -Q -batch -L . -f batch-byte-compile $<
 
 sodium-box-demo.elc: sodium-box-demo.el
 	$(EMACS) -Q -batch -L . -f batch-byte-compile $<
 
-run: sodium-box-demo.elc sodium$(MODULE_SUFFIX)
+box-demo: sodium-box-demo.elc sodium.elc libsodium$(MODULE_SUFFIX)
 	$(EMACS) -Q -L . -l $< -f sodium-box-demo
 
 clean:
-	$(RM) sodium.so sodium.dll sodium-box-demo.elc
+	$(RM) libsodium.so libsodium.dll sodium.elc sodium-box-demo.elc
 
-.PHONY: clean all linux
+.PHONY: clean all linux windows

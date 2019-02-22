@@ -8,16 +8,7 @@
 
 ;;; Code:
 
-(require 'cl-lib)
-
-;; Don't require dynamic module at byte compile time.
-(declare-function sodium-box-increment "sodium" ())
-(declare-function sodium-box-make-nonce "sodium" ())
-(declare-function sodium-box-keypair "sodium" ())
-(declare-function sodium-box-easy "sodium" (pk sk nonce plain))
-(declare-function sodium-box-easy-open "sodium" (pk sk nonce encrypted))
-(cl-eval-when (load eval)
-  (require 'sodium))
+(require 'sodium)
 
 (defun sodium-box-demo ()
   "Simple demonstration of the crypto_box API."
