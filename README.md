@@ -4,8 +4,30 @@ This module is in alpha, works only in Linux with Emacs 25+
 and only exposes a high level interface to the
 [crypto_box API](https://libsodium.gitbook.io/doc/public-key_cryptography/authenticated_encryption).
 
+## Install
+
+Run `make` and ensure that `sodium.el` is somewhere in your load path. Then
+
+```elisp
+(require 'sodium)
+```
+
+If you use [Borg](https://github.com/emacscollective/borg),
+make sure to execute `make` in you `.gitmodules` `build-step`
+like this
+
+```
+[submodule "sodium"]
+	path = lib/sodium
+	url = git@github.com:dakra/sodium.el.git
+	build-step = make
+```
+
+
 ## Usage
 You can see `sodium-box-demo.el` for a simple example:
+(Run the box-demo with `make box-demo`)
+
 ``` emacs-lisp
 (require 'sodium)
 
