@@ -41,9 +41,9 @@ You can see `sodium-box-demo.el` for a simple example:
        (msg "Hello World!")
        encrypted decrypted)
   (message "Encrypting message '%s'" msg)
-  (setq encrypted (sodium-box-easy msg nonce bob-pk alice-sk))
+  (setq encrypted (sodium-box msg nonce bob-pk alice-sk))
   (message "Decrypt message '%s'" encrypted)
-  (setq decrypted (sodium-box-open-easy encrypted nonce alice-pk bob-sk))
+  (setq decrypted (sodium-box-open encrypted nonce alice-pk bob-sk))
   (message "Decrypted message '%s'" decrypted))
 ```
 
@@ -54,5 +54,6 @@ Emacs module code was taken from/inspired by:
 - https://phst.eu/emacs-modules
 - https://github.com/skeeto/joymacs
 - Looking at module code from https://github.com/syohex
+- Emacs libgit2 bindings https://github.com/magit/libegit2
 - http://diobla.info/blog-archive/modules-tut.html
 - https://github.com/jkitchin/emacs-modules
