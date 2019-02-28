@@ -16,6 +16,15 @@
 
 #define BASE64_VARIANT sodium_base64_VARIANT_ORIGINAL
 
+/**
+ * Macro that defines a docstring for a function.
+ * @param name The function name.
+ * @param args The argument list as visible from Emacs (without parens).
+ * @param docstring The rest of the documentation.
+ */
+#define DOCSTRING(name, args, docstring)                                 \
+    const char *name##__doc = (docstring "\n\n(fn " args ")")
+
 
 /* Frequently-used symbols. */
 static emacs_value nil;
@@ -33,8 +42,7 @@ static char* copy_string(emacs_env *env, emacs_value v) {
   return s;
 }
 
-#define SODIUM_BOX_MAKE_NONCE \
-  "Return a new nonce."
+DOCSTRING(box_make_nonce, "", "Return a new nonce.");
 static emacs_value
 box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
@@ -50,11 +58,10 @@ box_make_nonce(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   return env->make_string(env, nonce_b64, (ptrdiff_t) strlen(nonce_b64));
 }
 
-#define SODIUM_INCREMENT \
-  "Return increment of N.\n" \
-  "It runs in constant-time for a given length.\n" \
-  "\n`sodium-increment' can be used to increment nonces in constant time.\n\n" \
-  "(fn N)"
+DOCSTRING(increment, "N",
+          "Return increment of N.\n"
+          "It runs in constant-time for a given length.\n\n"
+          "`sodium-increment' can be used to increment nonces in constant time.");
 static emacs_value
 increment(emacs_env *env, ptrdiff_t m, emacs_value *args, void *ptr)
 {
@@ -64,19 +71,19 @@ increment(emacs_env *env, ptrdiff_t m, emacs_value *args, void *ptr)
   char* n_b64 = copy_string(env, args[0]);
   unsigned char n[strlen(n_b64)];
 
-  sodium_base642bin(n, sizeof(n), n_b64, strlen(n_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  size_t n_len;
+  sodium_base642bin(n, sizeof(n), n_b64, strlen(n_b64), "\n\r ", &n_len, NULL, BASE64_VARIANT);
   free(n_b64);
 
-  sodium_increment(n, sizeof(n));
+  sodium_increment(n, n_len);
 
-  char ninc_b64[sodium_base64_encoded_len(sizeof(n), BASE64_VARIANT)];
-  sodium_bin2base64(ninc_b64, sizeof(ninc_b64), n, sizeof(n), BASE64_VARIANT);
+  char ninc_b64[sodium_base64_encoded_len(n_len, BASE64_VARIANT)];
+  sodium_bin2base64(ninc_b64, sizeof(ninc_b64), n, n_len, BASE64_VARIANT);
 
   return env->make_string(env, ninc_b64, (ptrdiff_t) strlen(ninc_b64));
 }
 
-#define SODIUM_BOX_KEYPAIR \
-  "Return alist with a new public and secret key."
+DOCSTRING(box_keypair, "", "Return alist with a new public and secret key.");
 static emacs_value
 box_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
@@ -113,11 +120,10 @@ box_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   return env->funcall(env, list, 2, fun_args);
 }
 
-#define SODIUM_BOX_EASY \
-  "Return encrypted text PLAIN with public key PK, secret key SK and NONCE.\n\n" \
-  "(fn MSG NONCE PK SK)"
+DOCSTRING(box, "MSG NONCE PK SK",
+          "Return encrypted text PLAIN with public key PK, secret key SK and NONCE.");
 static emacs_value
-box_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
+box(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
   (void)n;
   (void)ptr;
@@ -132,7 +138,9 @@ box_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   unsigned char sk[crypto_box_SECRETKEYBYTES];
 
-  sodium_base642bin(nonce, sizeof(nonce), nonce_b64, strlen(nonce_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  sodium_base642bin(nonce, sizeof(nonce),
+                    nonce_b64, strlen(nonce_b64),
+                    "\n\r ", NULL, NULL, BASE64_VARIANT);
   sodium_base642bin(pk, sizeof(pk), pk_b64, strlen(pk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
   sodium_base642bin(sk, sizeof(sk), sk_b64, strlen(sk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
 
@@ -145,16 +153,16 @@ box_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   free(sk_b64);
 
   char ciphertext_b64[sodium_base64_encoded_len(sizeof(ciphertext), BASE64_VARIANT)];
-  sodium_bin2base64(ciphertext_b64, sizeof(ciphertext_b64), ciphertext, sizeof(ciphertext), BASE64_VARIANT);
+  sodium_bin2base64(ciphertext_b64, sizeof(ciphertext_b64),
+                    ciphertext, sizeof(ciphertext), BASE64_VARIANT);
 
   return env->make_string(env, ciphertext_b64, (ptrdiff_t) strlen(ciphertext_b64));
 }
 
-#define SODIUM_BOX_OPEN_EASY \
-  "Return decrypted text ENCRYPTED with public key PK, secret key SK and NONCE.\n\n" \
-  "(fn CIPHER NONCE PK SK)"
+DOCSTRING(box_open, "CIPHER NONCE PK SK",
+          "Return decrypted text ENCRYPTED with public key PK, secret key SK and NONCE.");
 static emacs_value
-box_open_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
+box_open(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 {
   (void)n;
   (void)ptr;
@@ -169,13 +177,17 @@ box_open_easy(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   unsigned char sk[crypto_box_SECRETKEYBYTES];
 
-  sodium_base642bin(ciphertext, sizeof(ciphertext), ciphertext_b64, strlen(ciphertext_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
-  sodium_base642bin(nonce, sizeof(nonce), nonce_b64, strlen(nonce_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
+  size_t cipher_len;
+  sodium_base642bin(ciphertext, sizeof(ciphertext),
+                    ciphertext_b64, strlen(ciphertext_b64),
+                    "\n\r ", &cipher_len, NULL, BASE64_VARIANT);
+  sodium_base642bin(nonce, sizeof(nonce), nonce_b64, strlen(nonce_b64),
+                    "\n\r ", NULL, NULL, BASE64_VARIANT);
   sodium_base642bin(pk, sizeof(pk), pk_b64, strlen(pk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
   sodium_base642bin(sk, sizeof(sk), sk_b64, strlen(sk_b64), "\n\r ", NULL, NULL, BASE64_VARIANT);
 
-  unsigned char message[sizeof(ciphertext) - crypto_box_MACBYTES];
-  if (crypto_box_open_easy(message, ciphertext, strlen((char *)ciphertext), nonce, pk, sk) != 0) {
+  unsigned char message[cipher_len - crypto_box_MACBYTES];
+  if (crypto_box_open_easy(message, ciphertext, cipher_len, nonce, pk, sk) != 0) {
     /* message for Bob pretending to be from Alice has been forged! */
     return nil;
   }
@@ -211,16 +223,16 @@ static void initialize_module (emacs_env *env) {
     env->non_local_exit_signal(env, signal, message);
     return;
   }
-  /* Bind functions. */
-#define DEFUN(lsym, csym, amin, amax, doc, data) \
-    bind_function (env, lsym, \
-                   env->make_function (env, amin, amax, csym, doc, data))
 
-  DEFUN ("sodium-increment", increment, 1, 1, SODIUM_INCREMENT, NULL);
-  DEFUN ("sodium-box-make-nonce", box_make_nonce, 0, 0, SODIUM_BOX_MAKE_NONCE, NULL);
-  DEFUN ("sodium-box-keypair", box_keypair, 0, 0, SODIUM_BOX_KEYPAIR, NULL);
-  DEFUN ("sodium-box-easy", box_easy, 4, 4, SODIUM_BOX_EASY, NULL);
-  DEFUN ("sodium-box-open-easy", box_open_easy, 4, 4, SODIUM_BOX_OPEN_EASY, NULL);
+#define DEFUN(lsym, csym, args) \
+    bind_function (env, lsym, \
+                   env->make_function (env, args, args, csym, csym##__doc, NULL))
+
+  DEFUN ("sodium-increment",      increment,      1);
+  DEFUN ("sodium-box-make-nonce", box_make_nonce, 0);
+  DEFUN ("sodium-box-keypair",    box_keypair,    0);
+  DEFUN ("sodium-box",            box,            4);
+  DEFUN ("sodium-box-open",       box_open,       4);
 #undef DEFUN
 
   /* (provide 'sodium) */
