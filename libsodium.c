@@ -196,7 +196,7 @@ box_open(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
 }
 
 
-/* Bind NAME to FUN.  */
+/* Bind NAME to FUN. */
 static void
 bind_function (emacs_env *env, const char *name, emacs_value Sfun)
 {
@@ -205,6 +205,17 @@ bind_function (emacs_env *env, const char *name, emacs_value Sfun)
   emacs_value args[] = { Qsym, Sfun };
 
   env->funcall (env, Qfset, 2, args);
+}
+
+/* Set NAME to integer VALUE. */
+static void
+set_int (emacs_env *env, const char *name, int value)
+{
+  emacs_value setq = env->intern (env, "set");
+  emacs_value sym = env->intern (env, name);
+  emacs_value val = env->make_integer(env, value);
+  emacs_value args[] = { sym, val };
+  env->funcall (env, setq, 2, args);
 }
 
 /* The actual initialization function.  It’s called in a safe regime where all
@@ -234,6 +245,11 @@ static void initialize_module (emacs_env *env) {
   DEFUN ("sodium-box",            box,            4);
   DEFUN ("sodium-box-open",       box_open,       4);
 #undef DEFUN
+
+  set_int(env, "sodium-box-maxbytes",       crypto_box_MACBYTES);
+  set_int(env, "sodium-box-noncebytes",     crypto_box_NONCEBYTES);
+  set_int(env, "sodium-box-publickeybytes", crypto_box_PUBLICKEYBYTES);
+  set_int(env, "sodium-box-secretkeybytes", crypto_box_SECRETKEYBYTES);
 
   /* (provide 'sodium) */
   emacs_value provide = env->intern(env, "provide");
