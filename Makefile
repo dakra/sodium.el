@@ -10,7 +10,7 @@ linux: libsodium.so sodium.elc
 windows: libsodium.dll sodium.elc
 
 libsodium.so: libsodium.c
-	$(CC) -shared $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) -shared $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 libsodium.dll: libsodium.c
 	$(MINGW_CC) -shared $(CFLAGS) $(LCDFLAGS) -o $@ $^
