@@ -117,6 +117,7 @@ box_keypair(emacs_env *env, ptrdiff_t n, emacs_value *args, void *ptr)
   fun_args[0] = pk_pair;
   fun_args[1] = sk_pair;
 
+  list = env->intern(env, "list");
   return env->funcall(env, list, 2, fun_args);
 }
 
