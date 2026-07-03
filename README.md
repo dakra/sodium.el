@@ -17,11 +17,16 @@ Works on Linux and macOS with Emacs 28.1+ (built with module support).
 
 ## Install
 
-Run `make` and ensure that `sodium.el` is somewhere in your load path. Then
+Ensure that `sodium.el` is somewhere in your load path. Then
 
 ```elisp
 (require 'sodium)
 ```
+
+If the dynamic module (`sodium-module.so`/`.dylib`) is not compiled
+yet, sodium offers to compile it for you on first load (in
+non-interactive sessions it compiles automatically).  You can also
+build it yourself with `make` or `M-x sodium-module-compile`.
 
 If you use [Borg](https://github.com/emacscollective/borg),
 make sure to execute `make` in you `.gitmodules` `build-step`

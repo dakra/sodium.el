@@ -22,34 +22,36 @@ MODULE_SUFFIX := $(shell $(EMACS) -batch --eval '(princ module-file-suffix)' 2>/
 ifeq ($(MODULE_SUFFIX),)
 MODULE_SUFFIX := .so
 endif
-MODULE := libsodium$(MODULE_SUFFIX)
+MODULE := sodium-module$(MODULE_SUFFIX)
 
 all: $(MODULE) sodium.elc
-linux: libsodium.so sodium.elc
-windows: libsodium.dll sodium.elc
+linux: sodium-module.so sodium.elc
+windows: sodium-module.dll sodium.elc
 
-libsodium.so: libsodium.c
+sodium-module.so: sodium-module.c
 	$(CC) -shared $(CFLAGS) $^ $(UNIX_LDFLAGS) -o $@
 
-libsodium.dylib: libsodium.c
+sodium-module.dylib: sodium-module.c
 	$(CC) -shared $(CFLAGS) $^ $(UNIX_LDFLAGS) -o $@
 
-libsodium.dll: libsodium.c
+sodium-module.dll: sodium-module.c
 	$(MINGW_CC) -shared $(CFLAGS) $^ $(LDFLAGS) -o $@
 
-sodium.elc: sodium.el
+sodium.elc: sodium.el $(MODULE)
 	$(EMACS) -Q -batch -L . -f batch-byte-compile $<
 
-sodium-box-demo.elc: sodium-box-demo.el
+sodium-box-demo.elc: sodium-box-demo.el sodium.elc
 	$(EMACS) -Q -batch -L . -f batch-byte-compile $<
 
-box-demo: sodium-box-demo.elc sodium.elc $(MODULE)
+box-demo: sodium-box-demo.elc $(MODULE)
 	$(EMACS) -Q -L . -l $< -f sodium-box-demo
 
 test: $(MODULE) sodium.elc
 	$(EMACS) -Q -batch -L . -l sodium-tests.el -f ert-run-tests-batch-and-exit
 
 clean:
-	$(RM) libsodium.so libsodium.dylib libsodium.dll sodium.elc sodium-box-demo.elc
+	$(RM) sodium-module.so sodium-module.dylib sodium-module.dll \
+	  libsodium.so libsodium.dylib libsodium.dll \
+	  sodium.elc sodium-tests.elc sodium-box-demo.elc
 
 .PHONY: clean all linux windows test box-demo

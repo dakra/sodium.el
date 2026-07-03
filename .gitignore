@@ -1,4 +1,4 @@
-libsodium.so
-libsodium.dylib
-libsodium.dll
+sodium-module.so
+sodium-module.dylib
+sodium-module.dll
 *.elc

@@ -451,10 +451,10 @@ static void initialize_module (emacs_env *env) {
   set_int(env, "sodium-box-publickeybytes", crypto_box_PUBLICKEYBYTES);
   set_int(env, "sodium-box-secretkeybytes", crypto_box_SECRETKEYBYTES);
 
-  /* (provide 'sodium) */
+  /* (provide 'sodium-module) */
   emacs_value provide = env->intern(env, "provide");
-  emacs_value libsodium = env->intern(env, "libsodium");
-  env->funcall(env, provide, 1, &libsodium);
+  emacs_value feature = env->intern(env, "sodium-module");
+  env->funcall(env, provide, 1, &feature);
 }
 
 extern int

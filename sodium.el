@@ -32,9 +32,33 @@
 ;;; Code:
 
 (unless module-file-suffix
-  (error "Module support not detected, libsodium can't work"))
+  (error "Module support not detected, sodium can't work"))
 
-(require 'libsodium)
+(defconst sodium-module--dir
+  (file-name-directory (or load-file-name buffer-file-name
+                           (locate-library "sodium")))
+  "Directory containing the sodium dynamic module source.")
+
+(defun sodium-module-compile ()
+  "Compile the sodium dynamic module."
+  (interactive)
+  (let ((default-directory sodium-module--dir)
+        (buffer (get-buffer-create "*sodium-module-compile*")))
+    (message "Compiling the sodium dynamic module...")
+    (if (zerop (call-process "make" nil buffer t
+                             (concat "sodium-module" module-file-suffix)))
+        (message "Compiling the sodium dynamic module...done")
+      (pop-to-buffer buffer)
+      (error "Compilation of the sodium dynamic module failed"))))
+
+(unless (require 'sodium-module nil t)
+  (if (or noninteractive
+          (y-or-n-p "The sodium dynamic module is not compiled.  Compile it now? "))
+      (progn
+        (sodium-module-compile)
+        (require 'sodium-module))
+    (error "Sodium needs its dynamic module; run `make' in %s"
+           sodium-module--dir)))
 
 ;; Constants defined by the dynamic module.  Declared here so the
 ;; byte-compiler knows about them in consuming code.
