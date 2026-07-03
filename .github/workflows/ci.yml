@@ -6,6 +6,28 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: purcell/setup-emacs@master
+        with:
+          version: 'snapshot'
+
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev pkg-config
+
+      - name: Install package-lint
+        run: |
+          emacs -Q --batch --eval "(progn (require 'package) \
+            (push '(\"melpa\" . \"https://melpa.org/packages/\") package-archives) \
+            (package-refresh-contents) \
+            (package-install 'package-lint))"
+
+      - name: Lint
+        run: make lint
+
   test:
     strategy:
       fail-fast: false

@@ -103,6 +103,12 @@ Run the ERT test suite with
 make test
 ```
 
+and the linters (strict byte-compile, checkdoc and package-lint) with
+
+```
+make lint
+```
+
 ## Thanks
 
 @jedisct1 for [libsodium](https://github.com/jedisct1/libsodium)

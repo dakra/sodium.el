@@ -49,9 +49,15 @@ box-demo: sodium-box-demo.elc $(MODULE)
 test: $(MODULE) sodium.elc
 	$(EMACS) -Q -batch -L . -l sodium-tests.el -f ert-run-tests-batch-and-exit
 
+lint: $(MODULE)
+	$(EMACS) -Q -batch -L . \
+	  --eval '(setq byte-compile-error-on-warn t)' \
+	  -f batch-byte-compile sodium.el sodium-tests.el sodium-box-demo.el
+	$(EMACS) -Q -batch -L . -l sodium-lint.el
+
 clean:
 	$(RM) sodium-module.so sodium-module.dylib sodium-module.dll \
 	  libsodium.so libsodium.dylib libsodium.dll \
 	  sodium.elc sodium-tests.elc sodium-box-demo.elc
 
-.PHONY: clean all linux windows test box-demo
+.PHONY: clean all linux windows test lint box-demo
