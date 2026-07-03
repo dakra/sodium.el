@@ -5,8 +5,8 @@
 ;; Author: Daniel Kraus <daniel@kraus.my>
 ;; URL: https://github.com/dakra/sodium.el
 ;; Keywords: libsodium, crypto, keepassxc, libs, tools
-;; Version: 0.1
-;; Package-Requires: ((emacs "25.2"))
+;; Version: 0.2
+;; Package-Requires: ((emacs "28.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -35,6 +35,14 @@
   (error "Module support not detected, libsodium can't work"))
 
 (require 'libsodium)
+
+;; Constants defined by the dynamic module.  Declared here so the
+;; byte-compiler knows about them in consuming code.
+(defvar sodium-box-macbytes)
+(defvar sodium-box-maxbytes)            ; Deprecated alias of `sodium-box-macbytes'.
+(defvar sodium-box-noncebytes)
+(defvar sodium-box-publickeybytes)
+(defvar sodium-box-secretkeybytes)
 
 
 (provide 'sodium)

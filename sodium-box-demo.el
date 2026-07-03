@@ -13,6 +13,7 @@
 
 (defun sodium-box-demo ()
   "Simple demonstration of the crypto_box API."
+  (interactive)
   (pop-to-buffer (messages-buffer))
   (let ((nonce  (sodium-box-make-nonce))
         (msg "Hello World!")

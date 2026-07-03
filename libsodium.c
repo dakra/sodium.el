@@ -443,6 +443,9 @@ static void initialize_module (emacs_env *env) {
   DEFUN ("sodium-box-open",       box_open,       4);
 #undef DEFUN
 
+  set_int(env, "sodium-box-macbytes",       crypto_box_MACBYTES);
+  /* Deprecated misnomer, kept for backward compatibility.
+     Use `sodium-box-macbytes' instead. */
   set_int(env, "sodium-box-maxbytes",       crypto_box_MACBYTES);
   set_int(env, "sodium-box-noncebytes",     crypto_box_NONCEBYTES);
   set_int(env, "sodium-box-publickeybytes", crypto_box_PUBLICKEYBYTES);
