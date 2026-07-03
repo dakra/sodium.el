@@ -46,7 +46,10 @@ sodium-box-demo.elc: sodium-box-demo.el
 box-demo: sodium-box-demo.elc sodium.elc $(MODULE)
 	$(EMACS) -Q -L . -l $< -f sodium-box-demo
 
+test: $(MODULE) sodium.elc
+	$(EMACS) -Q -batch -L . -l sodium-tests.el -f ert-run-tests-batch-and-exit
+
 clean:
 	$(RM) libsodium.so libsodium.dylib libsodium.dll sodium.elc sodium-box-demo.elc
 
-.PHONY: clean all linux windows box-demo
+.PHONY: clean all linux windows test box-demo
