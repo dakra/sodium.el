@@ -101,6 +101,23 @@
   (let ((msg "{\"action\":\"get-logins\",\"url\":\"https://example.com\"}"))
     (should (string-equal (sodium-tests--roundtrip msg) msg))))
 
+;;; Known-answer test
+
+(ert-deftest sodium-tests-known-answer ()
+  "Fixed test vector generated with libsodium directly.
+Guards against base64, length and argument-order regressions that
+roundtrip tests cannot catch (a roundtrip also passes when both
+directions are consistently wrong)."
+  (let ((sk-alice "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=")
+        (pk-alice "B6N8vBQgk8i3VdwbEOhstCY3StFqqFPtC9/AsrhtHHw=")
+        (sk-bob "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVpbXF1eX2A=")
+        (pk-bob "ZLEBsdC+WocEvQePmJUAH8A+jp+VIvGI3RKNmEbUhGY=")
+        (nonce "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3")
+        (msg "sodium.el known-answer test")
+        (cipher "R7UY7pFXetxI+ASKl7u1QXW2retI8qnohiEo8Jwv5he8qGQSOzz4wM/6aw=="))
+    (should (string-equal (sodium-box msg nonce pk-bob sk-alice) cipher))
+    (should (string-equal (sodium-box-open cipher nonce pk-alice sk-bob) msg))))
+
 ;;; Error cases
 
 (ert-deftest sodium-tests-open-tampered-cipher ()
